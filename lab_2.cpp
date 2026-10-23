@@ -28,19 +28,6 @@ void print_cell(const char* str, int width) {
     }
 }
 
-// Создание тестового файла, если его еще нет в папке
-void create_default_txt(const char* name) {
-    ifstream test(name);
-    if (!test) {
-        ofstream out(name);
-        out << "Иванов Турция 2022 65000.50\n"
-            << "Смирнов Египет 2023 54000.00\n"
-            << "Кузнецов ОАЭ 2021 120000.00\n"
-            << "Попов Турция 2023 72000.00\n"
-            << "Васильев Италия 2019 95000.00\n";
-        out.close();
-    }
-}
 
 // Чтение текстового файла и запись в бинарный
 int txt_to_bin(const char* txt_name, const char* bin_name) {
@@ -153,9 +140,6 @@ int main() {
 
     const char* txt_file = "clients.txt";
     const char* bin_file = "clients.dat";
-
-    // Создаем clients.txt с исходными данными, если файла нет
-    create_default_txt(txt_file);
 
     // 1. Формируем бинарный файл из текстового
     int count = txt_to_bin(txt_file, bin_file);
