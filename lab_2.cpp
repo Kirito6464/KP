@@ -5,13 +5,30 @@
 
 using namespace std;
 
+// Структура записи о клиенте
 struct Client {
-    char surname[30];
-    char country[30];
-    int year;
-    double cost;
+    char surname[30]; // Фамилия
+    char country[30]; // Страна поездки
+    int year;         // Год поездки
+    double cost;      // Стоимость тура
 };
 
+// Функция для ровного вывода текста в терминале Linux (корректно считает символы UTF-8)
+void print_cell(const char* str, int width) {
+    cout << str;
+    int chars_count = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        // В UTF-8 каждый новый символ начинается не с байта 10xxxxxx (0x80)
+        if ((str[i] & 0xC0) != 0x80) {
+            chars_count++;
+        }
+    }
+    for (int i = chars_count; i < width; i++) {
+        cout << ' ';
+    }
+}
+
+// Создание тестового файла, если его еще нет в папке
 void create_default_txt(const char* name) {
     ifstream test(name);
     if (!test) {
@@ -25,6 +42,7 @@ void create_default_txt(const char* name) {
     }
 }
 
+// Чтение текстового файла и запись в бинарный
 int txt_to_bin(const char* txt_name, const char* bin_name) {
     ifstream in(txt_name);
     if (!in) return 0;
@@ -47,25 +65,29 @@ int txt_to_bin(const char* txt_name, const char* bin_name) {
     return count;
 }
 
+// Вывод бинарного файла на экран
 void print_bin_file(fstream& f, int n) {
     Client c;
     f.seekg(0);
-    cout << setw(12) << "Фамилия" << " | "
-         << setw(12) << "Страна" << " | "
-         << setw(6)  << "Год" << " | "
-         << setw(12) << "Стоимость" << endl;
-    cout << "---------------------------------------------" << endl;
+
+    print_cell("Фамилия", 12);
+    cout << " | ";
+    print_cell("Страна", 10);
+    cout << " | " << setw(6) << "Год" << " | " << setw(12) << "Стоимость" << endl;
+    cout << "----------------------------------------------------" << endl;
 
     for (int i = 0; i < n; i++) {
         f.read((char*)&c, sizeof(Client));
-        cout << setw(12) << c.surname << " | "
-             << setw(12) << c.country << " | "
-             << setw(6)  << c.year << " | "
-             << setw(12) << fixed << setprecision(2) << c.cost << endl;
+        print_cell(c.surname, 12);
+        cout << " | ";
+        print_cell(c.country, 10);
+        cout << " | " << setw(6) << c.year
+             << " | " << setw(12) << fixed << setprecision(2) << c.cost << endl;
     }
     cout << endl;
 }
 
+// Сортировка записей прямо в бинарном файле по возрастанию стоимости
 void sort_bin_file(fstream& f, int n) {
     Client ci, cj, min_elem;
     int min_idx;
@@ -97,23 +119,33 @@ void sort_bin_file(fstream& f, int n) {
     }
 }
 
+// Поиск клиентов, посетивших страну target
 void find_by_country(fstream& f, int n, const char* target) {
     Client c;
     f.seekg(0);
     bool found = false;
 
     cout << "Результаты поиска для страны \"" << target << "\":" << endl;
+    print_cell("Фамилия", 12);
+    cout << " | ";
+    print_cell("Страна", 10);
+    cout << " | " << setw(6) << "Год" << " | " << setw(12) << "Стоимость" << endl;
+    cout << "----------------------------------------------------" << endl;
+
     for (int i = 0; i < n; i++) {
         f.read((char*)&c, sizeof(Client));
         if (strcmp(c.country, target) == 0) {
             found = true;
-            cout << setw(12) << c.surname << " | "
-                 << setw(12) << c.country << " | "
-                 << setw(6)  << c.year << " | "
-                 << setw(12) << fixed << setprecision(2) << c.cost << endl;
+            print_cell(c.surname, 12);
+            cout << " | ";
+            print_cell(c.country, 10);
+            cout << " | " << setw(6) << c.year
+                 << " | " << setw(12) << fixed << setprecision(2) << c.cost << endl;
         }
     }
-    if (!found) cout << "Записей не найдено." << endl;
+    if (!found) {
+        cout << "Клиентов, посетивших данную страну, не найдено." << endl;
+    }
 }
 
 int main() {
@@ -122,22 +154,33 @@ int main() {
     const char* txt_file = "clients.txt";
     const char* bin_file = "clients.dat";
 
+    // Создаем clients.txt с исходными данными, если файла нет
     create_default_txt(txt_file);
 
+    // 1. Формируем бинарный файл из текстового
     int count = txt_to_bin(txt_file, bin_file);
-    if (count == 0) return 1;
+    if (count == 0) {
+        cout << "Ошибка: нет данных для обработки!" << endl;
+        return 1;
+    }
 
+    // 2. Открываем двоичный файл на чтение и запись
     fstream file(bin_file, ios::in | ios::out | ios::binary);
-    if (!file) return 1;
+    if (!file) {
+        cout << "Ошибка открытия двоичного файла!" << endl;
+        return 1;
+    }
 
     cout << "До сортировки:" << endl;
     print_bin_file(file, count);
 
+    // 3. Сортируем бинарный файл по возрастанию стоимости прямо на диске
     sort_bin_file(file, count);
 
     cout << "После сортировки по стоимости:" << endl;
     print_bin_file(file, count);
 
+    // 4. Поиск по стране X
     char search_country[30];
     cout << "Введите страну X для поиска: ";
     cin >> search_country;
